@@ -36,8 +36,7 @@ thread_send = 1
 thread_recv = 2
 count = 100
 send_OK = 0
-ack_Px = 0
-dist = 100
+dist = 10
 list = []
 
 def  ack(recv_pkg):
@@ -45,7 +44,6 @@ def  ack(recv_pkg):
     recv_pkg_len = recv_pkg[1]
     id_send_backup = id_send
     id_send, my_id, ack_Px = unpack_AckLora(recv_pkg,  recv_pkg_len)
-    print( "%d %d"%(id_send , id_recv))
     if(my_id == id_device and id_send != id_recv):
         print("Tamaño Send = %d" % len(recv_pkg))
         rx_timestamp, rssi, snr, sftx, sfrx, tx_trials, tx_power, tx_time_on_air, tx_counter, tx_frequency = lora.stats ()
@@ -91,7 +89,6 @@ def Recv():
         if (len(recv_pkg) > 4):
             recv_pkg_len = recv_pkg[1]
             id_next, location, My_px, id_my, dist_recv = unpack_Lora(recv_pkg,  recv_pkg_len)
-            print("->%d %d" %(id_send, id_next))
             if(dist_recv > dist):
                 #list = id_next
                 if id_next not in list:
