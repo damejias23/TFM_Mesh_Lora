@@ -2,6 +2,7 @@ import os
 import socket
 import time
 import struct
+import pycom
 from network import LoRa
 
 from LoraPack import *
@@ -24,7 +25,7 @@ _LORA_PKG_ACK_FORMAT = "BBB"
 # Australia = LoRa.AU915
 # Europe = LoRa.EU868
 # United States = LoRa.US915
-lora = LoRa(mode=LoRa.LORA, tx_iq=True, region=LoRa.EU868)
+lora = LoRa(mode=LoRa.LORA, region=LoRa.EU868)
 lora_sock = socket.socket(socket.AF_LORA, socket.SOCK_RAW)
 lora_sock.setblocking(False)
 i = 0
