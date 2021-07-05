@@ -51,7 +51,7 @@ def  ack(recv_pkg):
         send_OK =  1
     elif(id_send == id_recv):
         id_send = 0
-        
+
 
 def Send():
     global lora, lora_sock, Px_Rx, id_recv, id_send, location, id_device, count, _LORA_PKG_FORMAT, _LORA_PKG_ACK_FORMAT, send_OK, dist, list
@@ -71,13 +71,14 @@ def Send():
                 send_OK = 0
             else:
                 print("Send failt")
-                id_send
+                id_send  = 0
             count = 100
             time.sleep(15)
 
 
 def Recv():
-    global lora, lora_sock, Px_Rx, id_recv, id_send, location, id_device, count, _LORA_PKG_FORMAT, _LORA_PKG_ACK_FORMAT, dist, list
+    global lora, lora_sock, Px_Rx, id_recv, id_send, location, id_device, _LORA_PKG_FORMAT, _LORA_PKG_ACK_FORMAT, dist, list
+    i = 0
     while(True):
         #Recibo
         recv_pkg = lora_sock.recv(256)
@@ -96,9 +97,13 @@ def Recv():
             #Envio RESPUESTA
                     pkg_ack = pack_AckLora( id_device, id_recv, Px_Rx)
                     lora_sock.send(pkg_ack)
-                    count = count + 1
+                    i = 0
+            else:
+                i = i + 1
         elif (len(recv_pkg) > 2 and len(recv_pkg) < 4):
             ack(recv_pkg)
+        if(i == 5):
+            id_my = 0
 
 time.sleep(10)
 _thread.start_new_thread(Send, ())
