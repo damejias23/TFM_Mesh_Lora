@@ -18,6 +18,7 @@ _LORA_PKG_FORMAT = "BBBBB"
 _LORA_PKG_ACK_FORMAT = "BBB"
 #DEVICE_ID = 0x01
 
+MAX_RECV = 1
 
 # Open a Lora Socket, use tx_iq to avoid listening to our own messages
 # Please pick the region that matches where you are using the device:
@@ -37,9 +38,9 @@ thread_send = 1
 thread_recv = 2
 count = 100
 send_OK = 0
-dist = 30
+dist = 20
 list = []
-
+list_recv = []
 
 
 
@@ -79,8 +80,9 @@ def Send():
             time.sleep(35)
 
 
+
 def Recv():
-    global lora, lora_sock, Px_Rx, id_recv, id_send, location, id_device, _LORA_PKG_FORMAT, _LORA_PKG_ACK_FORMAT, dist, list
+    global lora, lora_sock, Px_Rx, id_recv, id_send, location, id_device, _LORA_PKG_FORMAT, _LORA_PKG_ACK_FORMAT, dist, list, list_recv
     i = 0
     while(True):
         #Recibo
@@ -91,9 +93,15 @@ def Recv():
             id_next, location, My_px, id_my, dist_recv = unpack_Lora(recv_pkg,  recv_pkg_len)
             if(dist_recv > dist and (id_my == id_device or id_my == 0)):
                 #list = id_next
+
+
+                if(id_my == 0 and len(list_recv) < MAX_RECV and id_next not in list_recv):
+                    list_recv.append(id_next)
+
                 if id_next not in list:
                     list.append(id_next)
-                if(id_send != id_next):
+
+                if((id_send != id_next) and id_next in list_recv):
                     id_recv = id_next
                     print("My id: %d - Recv: %d" % (id_device, id_recv))
                     rx_timestamp, rssi, snr, sftx, sfrx, tx_trials, tx_power, tx_time_on_air, tx_counter, tx_frequency = lora.stats ()
@@ -106,7 +114,9 @@ def Recv():
         elif (len(recv_pkg) > 2 and len(recv_pkg) < 4):
             ack(recv_pkg)
         if(i == 5):
+            list_recv = []
             id_my = 0
+            i = 0
 
 time.sleep(10)
 _thread.start_new_thread(Send, ())

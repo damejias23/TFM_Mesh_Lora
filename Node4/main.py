@@ -11,9 +11,13 @@ from env_recv import *
 import _thread
 
 # A basic package header, B: 1 byte for the deviceId, B: 1 byte for the pkg size
+#_LORA_PKG_FORMAT = "BB%ds"
+#_LORA_PKG_ACK_FORMAT = "BBB"
+
 _LORA_PKG_FORMAT = "BBBBB"
 _LORA_PKG_ACK_FORMAT = "BBB"
 #DEVICE_ID = 0x01
+
 MAX_RECV = 1
 
 # Open a Lora Socket, use tx_iq to avoid listening to our own messages
@@ -26,15 +30,15 @@ lora = LoRa(mode=LoRa.LORA, region=LoRa.EU868)
 lora_sock = socket.socket(socket.AF_LORA, socket.SOCK_RAW)
 lora_sock.setblocking(False)
 Px_Rx = 0
-location = 0x07
-id_device = location # CONSTANTE A FUTURO
+location = 0x15
+id_device = location
 id_send = 0
 id_recv = 0
 thread_send = 1
 thread_recv = 2
 count = 100
 send_OK = 0
-dist = 20
+dist = 30
 list = []
 list_recv = []
 
@@ -73,7 +77,8 @@ def Send():
                 print("Send failt")
                 id_send = 0
             count = 100
-            time.sleep(25)
+            time.sleep(35)
+
 
 
 def Recv():
