@@ -41,7 +41,7 @@ send_OK = 0
 dist = 30
 list = []
 list_recv = []
-
+count_list = []
 
 
 def  ack(recv_pkg):
@@ -82,7 +82,7 @@ def Send():
 
 
 def Recv():
-    global lora, lora_sock, Px_Rx, id_recv, id_send, location, id_device, _LORA_PKG_FORMAT, _LORA_PKG_ACK_FORMAT, dist, list, list_recv
+    global lora, lora_sock, Px_Rx, id_recv, id_send, location, id_device, dist, list, list_recv, count_list
     i = 0
     while(True):
         #Recibo
@@ -97,26 +97,44 @@ def Recv():
 
                 if(id_my == 0 and len(list_recv) < MAX_RECV and id_next not in list_recv):
                     list_recv.append(id_next)
+                    count_list.append(0)
 
                 if id_next not in list:
                     list.append(id_next)
 
                 if((id_send != id_next) and id_next in list_recv):
+
                     id_recv = id_next
+                    count_list[list_recv.index(id_recv)] = 0
                     print("My id: %d - Recv: %d" % (id_device, id_recv))
                     rx_timestamp, rssi, snr, sftx, sfrx, tx_trials, tx_power, tx_time_on_air, tx_counter, tx_frequency = lora.stats ()
             #Envio RESPUESTA
                     pkg_ack = pack_AckLora( id_device, id_recv, Px_Rx)
                     lora_sock.send(pkg_ack)
                     i = 0
-            else:
+            elif id_my != id_device or id_my == 0:
                 i = i + 1
+
+            for j in range(len(count_list)):
+                if id_next != list_recv[j]:
+                    count_list[j] = count_list[j] + 1
+
+
         elif (len(recv_pkg) > 2 and len(recv_pkg) < 4):
             ack(recv_pkg)
-        if(i == 5):
-            list_recv = []
-            id_my = 0
-            i = 0
+        if MAX_RECV > 1:
+            for j in range(len(count_list)):
+                if (count_list[j] == 5):
+                    list_recv.pop(j)
+                    count_list.pop(j)
+                    break
+        else:
+
+            if(i > 2):
+                list_recv = []
+                count_list = []
+                id_my = 0
+                i = 0
 
 time.sleep(10)
 _thread.start_new_thread(Send, ())
