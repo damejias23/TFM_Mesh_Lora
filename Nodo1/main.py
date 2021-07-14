@@ -115,6 +115,16 @@ def Recv():
             elif id_my != id_device or id_my == 0:
                 i = i + 1
 
+
+            if (dist_recv < dist) and (id_next in list):
+                list.remove(id_next)
+                if id_next == id_recv:
+                    id_recv = 0
+                if id_next in list_recv:
+                    count_list.pop(list_recv.index(id_next))
+                    list_recv.remove(id_next)
+
+
             for j in range(len(count_list)):
                 if id_next != list_recv[j]:
                     count_list[j] = count_list[j] + 1
