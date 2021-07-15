@@ -4,7 +4,7 @@ import time
 import struct
 from network import LoRa
 import uos
-
+import ubinascii, network
 
 _LORA_PKG_FORMAT = "BBBBB"
 _LORA_PKG_ACK_FORMAT = "BBB"
@@ -36,3 +36,9 @@ def unpack_AckLora(recv_ack,  recv_pkg_len):
 def Random():
     result = (uos.urandom(1)[0] / 256) + 40
     return result
+
+
+def Def_ID(lora):
+    id = ubinascii.hexlify(lora.mac()).upper().decode('utf-8')
+    id = id[14:16]
+    return int(id, 16)

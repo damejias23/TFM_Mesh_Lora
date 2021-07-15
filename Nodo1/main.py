@@ -3,6 +3,7 @@ import socket
 import time
 import struct
 import pycom
+import ubinascii, network
 from network import LoRa
 
 from LoraPack import *
@@ -13,6 +14,7 @@ import _thread
 
 # A basic package header, B: 1 byte for the deviceId, B: 1 byte for the pkg size, %ds: Formatted string for string
 _LORA_PKG_FORMAT = "BBBBB"
+
 
 # A basic ack package, B: 1 byte for the deviceId, B: 1 byte for the pkg size, B: 1 byte for the Ok (200) or error messages
 _LORA_PKG_ACK_FORMAT = "BBB"
@@ -33,7 +35,7 @@ Px_Rx = 0
 id_send = 0
 id_recv = 0
 location = 0x01
-id_device = location
+id_device = Def_ID(lora)
 thread_send = 1
 thread_recv = 2
 count = 100
@@ -88,12 +90,11 @@ def Recv():
         #Recibo
         recv_pkg = lora_sock.recv(256)
         #if(len(recv_pkg) != 0): print("Tamaño = %d" % len(recv_pkg))
-        if (len(recv_pkg) > 4):
+        if (len(recv_pkg) > len(_LORA_PKG_FORMAT) -1):
             recv_pkg_len = recv_pkg[1]
             id_next, location, My_px, id_my, dist_recv = unpack_Lora(recv_pkg,  recv_pkg_len)
             if(dist_recv > dist and (id_my == id_device or id_my == 0)):
                 #list = id_next
-
 
                 if(id_my == 0 and len(list_recv) < MAX_RECV and id_next not in list_recv):
                     list_recv.append(id_next)
@@ -103,7 +104,6 @@ def Recv():
                     list.append(id_next)
 
                 if((id_send != id_next) and id_next in list_recv):
-
                     id_recv = id_next
                     count_list[list_recv.index(id_recv)] = 0
                     print("My id: %d - Recv: %d" % (id_device, id_recv))
@@ -114,7 +114,6 @@ def Recv():
                     i = 0
             elif id_my != id_device or id_my == 0:
                 i = i + 1
-
 
             if (dist_recv < dist) and (id_next in list):
                 list.remove(id_next)
@@ -130,7 +129,7 @@ def Recv():
                     count_list[j] = count_list[j] + 1
 
 
-        elif (len(recv_pkg) > 2 and len(recv_pkg) < 4):
+        elif (len(recv_pkg) > len(_LORA_PKG_ACK_FORMAT) - 1 and len(recv_pkg) < len(_LORA_PKG_FORMAT) -1 ):
             ack(recv_pkg)
         if MAX_RECV > 1:
             for j in range(len(count_list)):

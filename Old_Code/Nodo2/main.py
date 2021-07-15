@@ -11,13 +11,9 @@ from env_recv import *
 import _thread
 
 # A basic package header, B: 1 byte for the deviceId, B: 1 byte for the pkg size
-#_LORA_PKG_FORMAT = "BB%ds"
-#_LORA_PKG_ACK_FORMAT = "BBB"
-
 _LORA_PKG_FORMAT = "BBBBB"
 _LORA_PKG_ACK_FORMAT = "BBB"
 #DEVICE_ID = 0x01
-
 MAX_RECV = 1
 
 # Open a Lora Socket, use tx_iq to avoid listening to our own messages
@@ -30,15 +26,15 @@ lora = LoRa(mode=LoRa.LORA, region=LoRa.EU868)
 lora_sock = socket.socket(socket.AF_LORA, socket.SOCK_RAW)
 lora_sock.setblocking(False)
 Px_Rx = 0
-location = 0x09
-id_device = location
+location = 0x08
+id_device = location # CONSTANTE A FUTURO
 id_send = 0
 id_recv = 0
 thread_send = 1
 thread_recv = 2
 count = 100
 send_OK = 0
-dist = 5
+dist = 20
 list = []
 list_recv = []
 count_list = []
@@ -78,7 +74,7 @@ def Send():
                 print("Send failt")
                 id_send = 0
             count = 100
-            time.sleep(35)
+            time.sleep(25)
 
 
 
@@ -95,7 +91,6 @@ def Recv():
             if(dist_recv > dist and (id_my == id_device or id_my == 0)):
                 #list = id_next
 
-
                 if(id_my == 0 and len(list_recv) < MAX_RECV and id_next not in list_recv):
                     list_recv.append(id_next)
                     count_list.append(0)
@@ -104,7 +99,6 @@ def Recv():
                     list.append(id_next)
 
                 if((id_send != id_next) and id_next in list_recv):
-
                     id_recv = id_next
                     count_list[list_recv.index(id_recv)] = 0
                     print("My id: %d - Recv: %d" % (id_device, id_recv))
@@ -115,6 +109,15 @@ def Recv():
                     i = 0
             elif id_my != id_device or id_my == 0:
                 i = i + 1
+
+            if (dist_recv < dist) and (id_next in list):
+                list.remove(id_next)
+                if id_next == id_recv:
+                    id_recv = 0
+                if id_next in list_recv:
+                    count_list.pop(list_recv.index(id_next))
+                    list_recv.remove(id_next)
+
 
             for j in range(len(count_list)):
                 if id_next != list_recv[j]:
