@@ -19,7 +19,9 @@ _LORA_PKG_FORMAT = "BBBBB"
 # A basic ack package, B: 1 byte for the deviceId, B: 1 byte for the pkg size, B: 1 byte for the Ok (200) or error messages
 _LORA_PKG_ACK_FORMAT = "BBB"
 
-MAX_RECV = 2
+MAX_RECV = 1
+
+modeTEST = 1
 
 # Open a LoRa Socket, use rx_iq to avoid listening to our own messages
 # Please pick the region that matches where you are using the device:
@@ -46,104 +48,53 @@ list_recv = []
 count_list = []
 
 
-def  ack(recv_pkg):
-    global send_OK, id_send, ack_Px, lora
-    recv_pkg_len = recv_pkg[1]
-    id_send_pack, my_id, ack_Px = unpack_AckLora(recv_pkg,  recv_pkg_len)
-    if(my_id == id_device and id_send_pack != id_recv):
-        id_send = id_send_pack
-        #print("Tamaño Send = %d" % len(recv_pkg))
-        rx_timestamp, rssi, snr, sftx, sfrx, tx_trials, tx_power, tx_time_on_air, tx_counter, tx_frequency = lora.stats ()
-        send_OK =  1
-    elif(id_send == id_recv):
-        id_send = 0
+
+#lista ID para enviar y bloquear
+ID_block = Open_Test('ID4')
+ID_send = 64
 
 
 def Send():
-    global lora, lora_sock, Px_Rx, id_recv, id_send, location, id_device, count, _LORA_PKG_FORMAT, _LORA_PKG_ACK_FORMAT, send_OK, dist, list
+    global lora, lora_sock, Px_Rx, id_recv, id_send, location, id_device, count, send_OK, dist, ID_send, id_device, list_recv
 
-    while(True):
-        print
-        if id_send not in list:
+    while(ID_send):
+        #if id_send not in list:
     #ENVIO
-            pck = pack_Lora(id_device, location, Px_Rx, id_send, dist)
-            lora_sock.send(pck)
-            print("My id: %d - Send: %d" % (id_device, id_send))
-    #RECIBO RESPUESTA
-            while(send_OK == 0 and count):
-                count = count - 1
-            if(send_OK):
-                print("Send OK")
-                send_OK = 0
-            else:
-                print("Send failt")
-                id_send  = 0
-            count = 100
-            time.sleep(15)
+        UID = UID_message(id_device)
+        list_recv.append(UID)
+        pck = pack_Lora(id_device, location, Px_Rx, ID_send, UID)
+        lora_sock.send(pck)
+        time.sleep(15)
+
+
 
 
 
 def Recv():
-    global lora, lora_sock, Px_Rx, id_recv, id_send, location, id_device, dist, list, list_recv, count_list
-    i = 0
+    global lora, lora_sock, Px_Rx, id_recv, id_send, location, id_device, dist, list_recv, modeTEST
     while(True):
         #Recibo
         recv_pkg = lora_sock.recv(256)
         #if(len(recv_pkg) != 0): print("Tamaño = %d" % len(recv_pkg))
         if (len(recv_pkg) > len(_LORA_PKG_FORMAT) -1):
             recv_pkg_len = recv_pkg[1]
-            id_next, location, My_px, id_my, dist_recv = unpack_Lora(recv_pkg,  recv_pkg_len)
-            if(dist_recv > dist and (id_my == id_device or id_my == 0)):
-                #list = id_next
-
-                if(id_my == 0 and len(list_recv) < MAX_RECV and id_next not in list_recv):
-                    list_recv.append(id_next)
-                    count_list.append(0)
-
-                if id_next not in list:
-                    list.append(id_next)
-
-                if((id_send != id_next) and id_next in list_recv):
-                    id_recv = id_next
-                    count_list[list_recv.index(id_recv)] = 0
-                    print("My id: %d - Recv: %d" % (id_device, id_recv))
-                    rx_timestamp, rssi, snr, sftx, sfrx, tx_trials, tx_power, tx_time_on_air, tx_counter, tx_frequency = lora.stats ()
-            #Envio RESPUESTA
-                    pkg_ack = pack_AckLora( id_device, id_recv, Px_Rx)
-                    lora_sock.send(pkg_ack)
-                    i = 0
-            elif id_my != id_device or id_my == 0:
-                i = i + 1
-
-            if (dist_recv < dist) and (id_next in list):
-                list.remove(id_next)
-                if id_next == id_recv:
-                    id_recv = 0
-                if id_next in list_recv:
-                    count_list.pop(list_recv.index(id_next))
-                    list_recv.remove(id_next)
-
-
-            for j in range(len(count_list)):
-                if id_next != list_recv[j]:
-                    count_list[j] = count_list[j] + 1
-
-
-        elif (len(recv_pkg) > len(_LORA_PKG_ACK_FORMAT) - 1 and len(recv_pkg) < len(_LORA_PKG_FORMAT) -1 ):
-            ack(recv_pkg)
-        if MAX_RECV > 1:
-            for j in range(len(count_list)):
-                if (count_list[j] == 5):
-                    list_recv.pop(j)
-                    count_list.pop(j)
-                    break
-        else:
-
-            if(i > 2):
+            id_to_send, location, My_px, id_end, UID_msg = unpack_Lora(recv_pkg,  recv_pkg_len)
+            if(modeTEST):
+                if id_to_send in ID_block:
+                    continue
+            if UID_msg in list_recv:
+                continue
+            else:
+                list_recv.append(UID_msg)
+            if(id_end == id_device):
+                print("Mensaje para mi de %d" % id_to_send)
+            else:
+                print("Reenvio de: %d" % id_to_send)
+                lora_sock.send(pack_Lora(id_device, location, My_px, id_end, UID_msg))
+                #lora_sock.send(recv_pkg)
+            if len(list_recv)  > 10:
+                time.sleep(1)
                 list_recv = []
-                count_list = []
-                id_my = 0
-                i = 0
 
 time.sleep(10)
 _thread.start_new_thread(Send, ())
