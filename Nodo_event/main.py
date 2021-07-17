@@ -72,26 +72,28 @@ def Send():
 
 def Recv():
     global lora, lora_sock, Px_Rx, id_recv, id_send, location, id_device, dist, list_recv, modeTEST
-    while(True):
-        #Recibo
-        recv_pkg = lora_sock.recv(256)
-        #if(len(recv_pkg) != 0): print("Tamaño = %d" % len(recv_pkg))
-        if (len(recv_pkg) > len(_LORA_PKG_FORMAT) -1):
-            recv_pkg_len = recv_pkg[1]
-            id_to_send, location, My_px, id_end, UID_msg = unpack_Lora(recv_pkg,  recv_pkg_len)
-            if(modeTEST):
-                if id_to_send in ID_block:
-                    continue
-            if UID_msg in list_recv:
-                continue
-            else:
-                list_recv.append(UID_msg)
-            if(id_end == id_device):
-                print("Mensaje para mi de %d" % id_to_send)
-            else:
-                print("Reenvio de: %d" % id_to_send)
-                lora_sock.send(pack_Lora(id_device, location, My_px, id_end, UID_msg))
-                #lora_sock.send(recv_pkg)
+    #while(True):
+    #Recibo
+    recv_pkg = lora_sock.recv(256)
+    #if(len(recv_pkg) != 0): print("Tamaño = %d" % len(recv_pkg))
+    if (len(recv_pkg) > len(_LORA_PKG_FORMAT) -1):
+        recv_pkg_len = recv_pkg[1]
+        id_to_send, location, My_px, id_end, UID_msg = unpack_Lora(recv_pkg,  recv_pkg_len)
+        if(modeTEST):
+            if id_to_send in ID_block:
+                #continue
+                return
+        if UID_msg in list_recv:
+            #continue
+            return
+        else:
+            list_recv.append(UID_msg)
+        if(id_end == id_device):
+            print("Mensaje para mi de %d" % id_to_send)
+        else:
+            print("Reenvio de: %d" % id_to_send)
+            lora_sock.send(pack_Lora(id_device, location, My_px, id_end, UID_msg))
+            #lora_sock.send(recv_pkg)
 
 
 def clear():
@@ -99,7 +101,7 @@ def clear():
     time.sleep(200)
     list_recv = []
 
-"""
+
 def lora_cb(lora):
     events = lora.events()
     if events & LoRa.RX_PACKET_EVENT:
@@ -115,4 +117,4 @@ _thread.start_new_thread(Send, ())
 
 _thread.start_new_thread(Recv, ())
 
-_thread.start_new_thread(clear,())
+_thread.start_new_thread(clear,())"""
