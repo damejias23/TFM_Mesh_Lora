@@ -6,7 +6,7 @@ from network import LoRa
 import uos
 import ubinascii, network
 
-_LORA_PKG_FORMAT = "BBBBB"
+_LORA_PKG_FORMAT = "BBBBI"
 _LORA_PKG_ACK_FORMAT = "BBB"
 
 def pack_Lora(DEVICE_ID, location, Px, Device_next, UID_msg):
@@ -45,6 +45,10 @@ def Def_ID(lora):
 
 def UID_message(id_device):
     return (id_device * 1000) + Random()
+
+def get_SendID(UID):
+    SendID = UID/1000
+    return int(SendID)
 
 
 def Open_Test(file_test):

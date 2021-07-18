@@ -13,7 +13,7 @@ import _thread
 #lock = _thread.allocate_lock()
 
 # A basic package header, B: 1 byte for the deviceId, B: 1 byte for the pkg size, %ds: Formatted string for string
-_LORA_PKG_FORMAT = "BBBBB"
+_LORA_PKG_FORMAT = "BBBBI"
 
 
 # A basic ack package, B: 1 byte for the deviceId, B: 1 byte for the pkg size, B: 1 byte for the Ok (200) or error messages
@@ -48,23 +48,23 @@ list_recv = []
 count_list = []
 
 
-
 #lista ID para enviar y bloquear
-ID_block = Open_Test('ID3')
+ID_block = Open_Test('ID1')
 ID_send = 0
 
 
 def Send():
     global lora, lora_sock, Px_Rx, id_recv, id_send, location, id_device, count, send_OK, dist, ID_send, id_device, list_recv
 
-    if(ID_send):
-        #if id_send not in list:
-    #ENVIO
-        UID = UID_message(id_device)
-        list_recv.append(UID)
-        pck = pack_Lora(id_device, location, Px_Rx, ID_send, UID)
-        lora_sock.send(pck)
-        time.sleep(15)
+    while(True):
+        if(ID_send):
+            #if id_send not in list:
+        #ENVIO
+            UID = UID_message(id_device)
+            list_recv.append(UID)
+            pck = pack_Lora(id_device, location, Px_Rx, ID_send, UID)
+            lora_sock.send(pck)
+            time.sleep(15)
 
 
 
@@ -87,7 +87,8 @@ def Recv():
             else:
                 list_recv.append(UID_msg)
             if(id_end == id_device):
-                print("Mensaje para mi de %d" % id_to_send)
+                print("Mensaje para mi de %d" % get_SendID(UID_msg))
+
             else:
                 print("Reenvio de: %d" % id_to_send)
                 lora_sock.send(pack_Lora(id_device, location, My_px, id_end, UID_msg))
