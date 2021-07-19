@@ -49,7 +49,8 @@ count_list = []
 
 
 #lista ID para enviar y bloquear
-ID_block = Open_Test('ID1')
+namefile = "ID" + str(id_device)
+ID_block = Open_Test(namefile)
 ID_send = 0
 
 
@@ -88,7 +89,10 @@ def Recv():
                 list_recv.append(UID_msg)
             if(id_end == id_device):
                 print("Mensaje para mi de %d" % get_SendID(UID_msg))
-
+            elif(id_end == 1):
+                print("Mensaje broadcast: %d" % get_SendID(UID_msg))
+                lora_sock.send(pack_Lora(id_device, location, My_px, id_end, UID_msg))
+                #lora_sock.send(recv_pkg)
             else:
                 print("Reenvio de: %d" % id_to_send)
                 lora_sock.send(pack_Lora(id_device, location, My_px, id_end, UID_msg))
