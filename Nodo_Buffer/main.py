@@ -13,11 +13,11 @@ import _thread
 #lock = _thread.allocate_lock()
 
 # A basic package header, B: 1 byte for the deviceId, B: 1 byte for the pkg size, %ds: Formatted string for string
-_LORA_PKG_FORMAT = "!BBIBB"
+_LORA_PKG_FORMAT = "BBBBI"
 
 
 # A basic ack package, B: 1 byte for the deviceId, B: 1 byte for the pkg size, B: 1 byte for the Ok (200) or error messages
-_LORA_PKG_ACK_FORMAT = "!BBB"
+_LORA_PKG_ACK_FORMAT = "BBB"
 
 MAX_RECV = 1
 
@@ -46,7 +46,7 @@ dist = 10
 list = []
 list_recv = []
 count_list = []
-
+buffer_msg = []
 
 #lista ID para enviar y bloquear
 if(modeTEST):
@@ -59,14 +59,25 @@ def Send():
     global lora, lora_sock, Px_Rx, location, ID_send, id_device, list_recv
 
     while(True):
+        if(len(buffer_msg) > 0):
+            send = buffer_msg.pop(0)
+            
+
+
+
+
         if(ID_send):
             #if id_send not in list:
         #ENVIO
             UID = UID_message(id_device)
             list_recv.append(UID)
-            pck = pack_Lora(id_device, ID_send, UID, location, Px_Rx)
+            pck = pack_Lora(id_device, location, Px_Rx, ID_send, UID)
             lora_sock.send(pck)
             time.sleep(15)
+
+
+
+def Resp(ID_respond):
 
 
 def Recv():
@@ -77,7 +88,7 @@ def Recv():
         #if(len(recv_pkg) != 0): print("Tamaño = %d" % len(recv_pkg))
         if (len(recv_pkg) > len(_LORA_PKG_FORMAT) -1):
             recv_pkg_len = recv_pkg[1]
-            id_to_send, id_end, UID_msg = get_IDdest(recv_pkg)
+            id_to_send, location, My_px, id_end, UID_msg = unpack_Lora(recv_pkg,  recv_pkg_len)
             if(modeTEST):
                 if id_to_send in ID_block:
                     continue
@@ -86,17 +97,15 @@ def Recv():
             else:
                 list_recv.append(UID_msg)
             if(id_end == id_device):
-                id_to_send, id_end, UID_msg, location, My_px  = unpack_Lora(recv_pkg,  recv_pkg_len)
                 print("Mensaje para mi de %d" % get_SendID(UID_msg))
-            elif(id_end == 555):
-                id_to_send, id_end, UID_msg, location, My_px  = unpack_Lora(recv_pkg,  recv_pkg_len)
+            """elif(id_end == 1):
                 print("Mensaje broadcast: %d" % get_SendID(UID_msg))
-                pck_reenvio = set_IDorigen(recv_pkg, id_device)
-                lora_sock.send(pck_reenvio)
+                lora_sock.send(pack_Lora(id_device, location, My_px, id_end, UID_msg))"""
+                #lora_sock.send(recv_pkg)
             else:
-                print("Reenvio de: %d" % id_to_send)
-                pck_reenvio = set_IDorigen(recv_pkg, id_device)
-                lora_sock.send(pck_reenvio)
+                #print("Reenvio de: %d" % id_to_send)
+                buffer_msg.append(recv_pkg)
+                #lora_sock.send(recv_pkg)
 
 
 def clear():

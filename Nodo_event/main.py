@@ -105,7 +105,6 @@ def clear():
 def lora_cb(lora):
     events = lora.events()
     if events & LoRa.RX_PACKET_EVENT:
-        print('Lora packet received')
         Recv()
     if events & LoRa.TX_PACKET_EVENT:
         print('Lora packet sent')
