@@ -30,7 +30,7 @@ ACK_ACTV = 0
 modeTEST = 1
 
 #Activador de suspesion del sistema
-active_sleep = 0
+ModeSleep = 0
 
 # Open a LoRa Socket, use rx_iq to avoid listening to our own messages
 # Please pick the region that matches where you are using the device:
@@ -79,13 +79,13 @@ def Send_buffer():
                 print("Reenvio de: %d" % id_to_send)
                 pck_reenvio = set_IDorigen(send_pck, id_device)
                 lora_sock.send(pck_reenvio)
-        elif active_sleep:
+        elif active_sleep and ModeSleep:
             print("Sleep")
             machine.sleep(1000*20,False)
             lora = LoRa(mode=LoRa.LORA, region=LoRa.EU868)
             print("Wake up")
             active_sleep = 0
-        if active_sleep:
+        if ModeSleep:
             time.sleep(2)
         else:
             time.sleep(15)
@@ -104,7 +104,7 @@ def Packet_buffer(ID_send):
                 cuenta_envio = cuenta_envio + 1
                 print("Numero de paquetes enviados: %d" % cuenta_envio)
                 buffer.append(pck)
-            if active_sleep:
+            if ModeSleep:
                 time.sleep(2)
                 active_sleep = 1
 
@@ -133,14 +133,14 @@ def Recv():
             print("Cuenta recibida de paquetes %d" % cuenta_recibo)
             if List_ack(get_SendID(UID_msg), List_send) and ACK_ACTV:
                 send_ack(get_SendID(UID_msg))
-            if active_sleep:
+            if ModeSleep:
                 time.sleep(5)
                 if len(buffer):
                     active_sleep = 1
         else:
             if(len(buffer) < MAX_BUFFER):
                 buffer.append(recv_pkg)
-                if active_sleep:
+                if ModeSleep:
                     time.sleep(5)
                     active_sleep = 1
 
