@@ -93,7 +93,7 @@ def Send_buffer():
 
 def Packet_buffer(ID_send):
     global location, id_device, list_recv, buffer, active_sleep
-
+    cuenta_envio = 0
     while(True):
         if(ID_send):
         #ENVIO AL BUFFER
@@ -101,6 +101,8 @@ def Packet_buffer(ID_send):
             list_recv.append(UID)
             pck = pack_Lora(id_device, ID_send, UID, location, 0)
             if(len(buffer) < MAX_BUFFER):
+                cuenta_envio = cuenta_envio + 1
+                print("Numero de paquetes enviados: %d" % cuenta_envio)
                 buffer.append(pck)
             if active_sleep:
                 time.sleep(2)
@@ -109,6 +111,7 @@ def Packet_buffer(ID_send):
 
 def Recv():
     global lora, lora_sock, location, id_device, list_recv, modeTEST, buffer, count, active_sleep
+    cuenta_recibo = 0
     #Recibo
     recv_pkg = lora_sock.recv(256)
     recv_pkg_len = recv_pkg[1]
@@ -125,7 +128,9 @@ def Recv():
     if (len(recv_pkg) > 7):
         if(id_end == id_device):
             id_to_send, id_end, UID_msg, location, My_px  = unpack_Lora(recv_pkg,  recv_pkg_len)
+            cuenta_recibo = cuenta_recibo + 1
             print("Mensaje para mi de %d" % get_SendID(UID_msg))
+            print("Cuenta recibida de paquetes %d" % cuenta_recibo)
             if List_ack(get_SendID(UID_msg), List_send) and ACK_ACTV:
                 send_ack(get_SendID(UID_msg))
             if active_sleep:
@@ -178,9 +183,6 @@ def lora_cb(lora):
     events = lora.events()
     if events & LoRa.RX_PACKET_EVENT:
         Recv()
-    #if events & LoRa.TX_PACKET_EVENT:
-        #i=0
-        #print('Lora packet sent')
 
 lora.callback(trigger=(LoRa.RX_PACKET_EVENT | LoRa.TX_PACKET_EVENT), handler=lora_cb)
 
