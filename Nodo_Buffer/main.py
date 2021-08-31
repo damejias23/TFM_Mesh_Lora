@@ -23,9 +23,14 @@ _LORA_PKG_ACK_FORMAT = "!BBIB"
 MAX_RECV = 1
 MAX_BUFFER = 4
 
+#Activador de comprobacion de mensaje
 ACK_ACTV = 0
 
+#Activador de modo Test
 modeTEST = 1
+
+#Activador de suspesion del sistema
+active_sleep = 0
 
 # Open a LoRa Socket, use rx_iq to avoid listening to our own messages
 # Please pick the region that matches where you are using the device:
@@ -37,27 +42,22 @@ modeTEST = 1
 lora = LoRa(mode=LoRa.LORA, region=LoRa.EU868)
 lora_sock = socket.socket(socket.AF_LORA, socket.SOCK_RAW)
 lora_sock.setblocking(False)
-Px_Rx = 0
-id_recv = 0
 location = 0x01
 id_device = Def_ID(lora)
-thread_send = 1
-thread_recv = 2
 count = 100
 send_OK = 0
-dist = 10
-list = []
-list_recv = []
-count_list = []
+list_recv = []          # LISTA DE LOS ID DE LOS MENSAJES RECIBIDOS
 
 
 active_sleep = 0
 
-buffer = []
-List_send = ID_recv()
+buffer = []            # LISTA DE LOS MENSAJES EN BUFFER A ENVIAR
+
 if ACK_ACTV:
+    List_send = ID_recv()    #LISTA DE CONTEO PARA ACK
     pycom.heartbeat(False)
-    #pycom.rgbled(0x007f00)
+
+
 #lista ID para enviar y bloquear
 if(modeTEST):
     namefile = "ID" + str(id_device)
@@ -65,7 +65,7 @@ if(modeTEST):
 
 
 def Send_buffer():
-    global lora, lora_sock, Px_Rx, location, id_device, list_recv, active_sleep
+    global lora, lora_sock, location, id_device, list_recv, active_sleep
 
     while(True):
         if len(buffer)>0:
@@ -81,11 +81,9 @@ def Send_buffer():
                 lora_sock.send(pck_reenvio)
         elif active_sleep:
             print("Sleep")
-            #lora.nvram_save()
             machine.sleep(1000*20,False)
             lora = LoRa(mode=LoRa.LORA, region=LoRa.EU868)
             print("Wake up")
-            #lora.nvram_restore()
             active_sleep = 0
         if active_sleep:
             time.sleep(2)
@@ -94,15 +92,14 @@ def Send_buffer():
 
 
 def Packet_buffer(ID_send):
-    global Px_Rx, location, id_device, list_recv, buffer, active_sleep
+    global location, id_device, list_recv, buffer, active_sleep
 
     while(True):
         if(ID_send):
-            #if id_send not in list:
-        #ENVIO
+        #ENVIO AL BUFFER
             UID = UID_message(id_device)
             list_recv.append(UID)
-            pck = pack_Lora(id_device, ID_send, UID, location, Px_Rx)
+            pck = pack_Lora(id_device, ID_send, UID, location, 0)
             if(len(buffer) < MAX_BUFFER):
                 buffer.append(pck)
             if active_sleep:
@@ -111,14 +108,11 @@ def Packet_buffer(ID_send):
 
 
 def Recv():
-    global lora, lora_sock, Px_Rx, id_recv, location, id_device, dist, list_recv, modeTEST, buffer, count, active_sleep
+    global lora, lora_sock, location, id_device, list_recv, modeTEST, buffer, count, active_sleep
     #Recibo
     recv_pkg = lora_sock.recv(256)
-    #if(len(recv_pkg) != 0): print("Tamaño = %d" % len(recv_pkg))
-    #if (len(recv_pkg) > len(_LORA_PKG_FORMAT) -1):
     recv_pkg_len = recv_pkg[1]
     id_to_send, id_end, UID_msg = get_IDdest(recv_pkg)
-
 
     if(modeTEST):
         if id_to_send in ID_block:
@@ -138,11 +132,6 @@ def Recv():
                 time.sleep(5)
                 if len(buffer):
                     active_sleep = 1
-        #"""elif(id_end == 555):
-        #    id_to_send, id_end, UID_msg, location, My_px  = unpack_Lora(recv_pkg,  recv_pkg_len)
-        #    print("Mensaje broadcast: %d" % get_SendID(UID_msg))
-        #   pck_reenvio = set_IDorigen(recv_pkg, id_device)
-        #    lora_sock.send(pck_reenvio)"""
         else:
             if(len(buffer) < MAX_BUFFER):
                 buffer.append(recv_pkg)
@@ -165,9 +154,8 @@ def send_ack(id_respond):
     global lora, lora_sock, list_recv, buffer
     UID = UID_message(id_device)
     list_recv.append(UID)
-    pkg_ack = pack_AckLora( id_device, id_respond, UID, Px_Rx)
+    pkg_ack = pack_AckLora( id_device, id_respond, UID, 0)
     buffer.append(pkg_ack)
-    #lora_sock.send(pkg_ack)
 
 
 def clear():
@@ -189,7 +177,6 @@ def ack_off():
 def lora_cb(lora):
     events = lora.events()
     if events & LoRa.RX_PACKET_EVENT:
-        #print('Lora packet received')
         Recv()
     #if events & LoRa.TX_PACKET_EVENT:
         #i=0
