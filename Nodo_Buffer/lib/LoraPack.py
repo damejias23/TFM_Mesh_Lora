@@ -7,43 +7,66 @@ import uos
 import ubinascii, network
 
 _LORA_PKG_FORMAT = "!BBIBB"
-_LORA_PKG_ACK_FORMAT = "!BBB"
+_LORA_PKG_ACK_FORMAT = "!BBIB"
 
-def pack_Lora(DEVICE_ID,Device_next, UID_msg, location, Px):
+
+class ID_recv:
+
+    def __init__(self):
+        self.id = []
+        self.count = []
+    def new_id(self, id):
+        self.id.append(id)
+        self.count.append(0)
+    def add_count(self, id):
+        i = self.id.index(id)
+        self.count[i] = self.count[i] + 1
+    def remove_id(self, id):
+        i = self.id.index(id)
+        self.id.pop(i)
+        self.count.pop(i)
+
+
+def pack_Lora(DEVICE_ID,Device_next, UID_msg, TTL, location):
     global _LORA_PKG_FORMAT, _LORA_PKG_ACK_FORMAT
-    pkg = struct.pack(_LORA_PKG_FORMAT, DEVICE_ID, Device_next, UID_msg, location, Px)
+    pkg = struct.pack(_LORA_PKG_FORMAT, DEVICE_ID, Device_next, UID_msg, TTL, location)
     return pkg
 
-def pack_AckLora(DEVICE_ID, DEVICE_Resp, Px):
+def pack_AckLora(DEVICE_ID, DEVICE_Resp, UID_msg, TTL):
     global _LORA_PKG_FORMAT, _LORA_PKG_ACK_FORMAT
-    pkg_ack = struct.pack(_LORA_PKG_ACK_FORMAT, DEVICE_ID, DEVICE_Resp, Px)
+    pkg_ack = struct.pack(_LORA_PKG_ACK_FORMAT, DEVICE_ID, DEVICE_Resp, UID_msg, TTL)
     return pkg_ack
 
 
 def unpack_Lora(recv_pkg,  recv_pkg_len):
    global _LORA_PKG_FORMAT, _LORA_PKG_ACK_FORMAT
    #device_id, location, Px, Device_next = struct.unpack(_LORA_PKG_FORMAT % recv_pkg_len, recv_pkg)
-   device_id, Device_next, UID_msg, location, Px = struct.unpack(_LORA_PKG_FORMAT, recv_pkg)
-   return device_id, Device_next, UID_msg, location, Px
+   device_id, Device_next, UID_msg, TTL, location = struct.unpack(_LORA_PKG_FORMAT, recv_pkg)
+   return device_id, Device_next, UID_msg, TTL, location
 
 
 def unpack_AckLora(recv_ack,  recv_pkg_len):
    global _LORA_PKG_FORMAT, _LORA_PKG_ACK_FORMAT
    #device_id, data_null, ack_Px = struct.unpack(_LORA_PKG_ACK_FORMAT % recv_pkg_len, recv_ack)
-   device_id, device_respond, ack_Px = struct.unpack(_LORA_PKG_ACK_FORMAT, recv_ack)
-   return device_id, device_respond, ack_Px
+   device_id, device_respond, UID_msg, TTL = struct.unpack(_LORA_PKG_ACK_FORMAT, recv_ack)
+   return device_id, device_respond, UID_msg, TTL
 
 def get_IDdest(recv_pkg):
     global _LORA_PKG_FORMAT, _LORA_PKG_ACK_FORMAT
-    ID_send, ID_end, UID = struct.unpack_from("BBI", recv_pkg, 0)
+    ID_send, ID_end, UID = struct.unpack_from("!BBI", recv_pkg, 0)
     return ID_send, ID_end, UID
 
 
 def set_IDorigen(pack, ID_sent):
     global _LORA_PKG_FORMAT, _LORA_PKG_ACK_FORMAT
-    device_id, Device_next, UID_msg, location, Px = struct.unpack(_LORA_PKG_FORMAT, pack)
-    pkg = struct.pack(_LORA_PKG_FORMAT, ID_sent, Device_next, UID_msg, location, Px)
-    return pkg
+    if (len(pack) > len(_LORA_PKG_FORMAT) -1):
+        device_id, Device_next, UID_msg, TTL, location = struct.unpack(_LORA_PKG_FORMAT, pack)
+        pkg = struct.pack(_LORA_PKG_FORMAT, ID_sent, Device_next, UID_msg, TTL + 1, location)
+        return pkg
+    elif(len(recv_pkg) > 2 and len(recv_pkg) < 4):
+        device_id, Device_next, UID_msg, TTL= struct.unpack(_LORA_PKG_ACK_FORMAT, pack)
+        pkg = struct.pack(_LORA_PKG_FORMAT, ID_sent, Device_next, UID_msg, TTL + 1)
+        return pkg
     #struct.pack_into('B', pack, offset, v1, v2, ...)
 
 def Random():
@@ -62,6 +85,20 @@ def UID_message(id_device):
 def get_SendID(UID):
     SendID = UID/1000
     return int(SendID)
+
+def List_ack(ID, list):
+    if ID in list.id:
+        i = list.id.index(ID)
+        list.add_count(ID)
+        if list.count[i] >= 5:
+            list.remove_id(ID)
+            return 1
+        else:
+            return 0
+    else:
+        list.new_id(ID)
+        list.add_count(ID)
+        return 0
 
 
 def Open_Test(file_test):
