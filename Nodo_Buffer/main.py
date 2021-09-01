@@ -46,6 +46,7 @@ location = 0x01
 id_device = Def_ID(lora)
 count = 100
 send_OK = 0
+cuenta_recibo = 0
 list_recv = []          # LISTA DE LOS ID DE LOS MENSAJES RECIBIDOS
 
 
@@ -53,8 +54,10 @@ active_sleep = 0
 
 buffer = []            # LISTA DE LOS MENSAJES EN BUFFER A ENVIAR
 
+List_send = ID_recv()    #LISTA DE CONTEO PARA ACK
+
 if ACK_ACTV:
-    List_send = ID_recv()    #LISTA DE CONTEO PARA ACK
+
     pycom.heartbeat(False)
 
 
@@ -87,8 +90,6 @@ def Send_buffer():
             active_sleep = 0
         if ModeSleep:
             time.sleep(2)
-        else:
-            time.sleep(15)
 
 
 def Packet_buffer(ID_send):
@@ -97,21 +98,31 @@ def Packet_buffer(ID_send):
     while(True):
         if(ID_send):
         #ENVIO AL BUFFER
-            UID = UID_message(id_device)
-            list_recv.append(UID)
-            pck = pack_Lora(id_device, ID_send, UID, location, 0)
-            if(len(buffer) < MAX_BUFFER):
-                cuenta_envio = cuenta_envio + 1
-                print("Numero de paquetes enviados: %d" % cuenta_envio)
-                buffer.append(pck)
             if ModeSleep:
-                time.sleep(2)
-                active_sleep = 1
+                if not active_sleep:
+                    time.sleep(4)
+                    UID = UID_message(id_device)
+                    list_recv.append(UID)
+                    pck = pack_Lora(id_device, ID_send, UID, 0, location)
+                    if(len(buffer) < MAX_BUFFER):
+                        cuenta_envio = cuenta_envio + 1
+                        print("Numero de paquetes enviados: %d" % cuenta_envio)
+                        buffer.append(pck)
+                    active_sleep = 1
+            else:
+                UID = UID_message(id_device)
+                list_recv.append(UID)
+                pck = pack_Lora(id_device, ID_send, UID, location, 0)
+                if(len(buffer) < MAX_BUFFER):
+                    cuenta_envio = cuenta_envio + 1
+                    print("Numero de paquetes enviados: %d" % cuenta_envio)
+                    buffer.append(pck)
+                time.sleep(15)
 
 
 def Recv():
-    global lora, lora_sock, location, id_device, list_recv, modeTEST, buffer, count, active_sleep
-    cuenta_recibo = 0
+    global lora, lora_sock, location, id_device, list_recv, modeTEST, buffer, count, active_sleep, cuenta_recibo
+
     #Recibo
     recv_pkg = lora_sock.recv(256)
     recv_pkg_len = recv_pkg[1]
@@ -127,15 +138,16 @@ def Recv():
 
     if (len(recv_pkg) > 7):
         if(id_end == id_device):
-            id_to_send, id_end, UID_msg, location, My_px  = unpack_Lora(recv_pkg,  recv_pkg_len)
+            id_to_send, id_end, UID_msg, TTL, location = unpack_Lora(recv_pkg,  recv_pkg_len)
             cuenta_recibo = cuenta_recibo + 1
-            print("Mensaje para mi de %d" % get_SendID(UID_msg))
+            print("Mensaje para mi de %d. Saltos:%d" % (get_SendID(UID_msg), TTL))
+            TTL = TTL + 1
             print("Cuenta recibida de paquetes %d" % cuenta_recibo)
             if List_ack(get_SendID(UID_msg), List_send) and ACK_ACTV:
                 send_ack(get_SendID(UID_msg))
             if ModeSleep:
                 time.sleep(5)
-                if len(buffer):
+                if not len(buffer):
                     active_sleep = 1
         else:
             if(len(buffer) < MAX_BUFFER):
@@ -146,7 +158,9 @@ def Recv():
 
     elif (len(recv_pkg) > 2 and len(recv_pkg) < 8 and ACK_ACTV):
         if(id_end == id_device):
-            print("Recibo un ACK")
+            id_to_send, id_end, UID_msg, TTL = unpack_AckLora(recv_pkg,  recv_pkg_len)
+            TTL = TTL + 1
+            print("Recibo un ACK. Saltos %d" % TTL)
             send_OK = 1
             pycom.rgbled(0x007f00)
             count = 100

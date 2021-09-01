@@ -59,13 +59,15 @@ def get_IDdest(recv_pkg):
 
 def set_IDorigen(pack, ID_sent):
     global _LORA_PKG_FORMAT, _LORA_PKG_ACK_FORMAT
-    if (len(pack) > len(_LORA_PKG_FORMAT) -1):
+    if (len(pack) > 7 ):
         device_id, Device_next, UID_msg, TTL, location = struct.unpack(_LORA_PKG_FORMAT, pack)
-        pkg = struct.pack(_LORA_PKG_FORMAT, ID_sent, Device_next, UID_msg, TTL + 1, location)
+        TTL = TTL + 1
+        pkg = pack_Lora(ID_sent, Device_next, UID_msg, TTL, location)
         return pkg
-    elif(len(recv_pkg) > 2 and len(recv_pkg) < 4):
+    elif(len(pack) > 2 and len(pack) < 8):
         device_id, Device_next, UID_msg, TTL= struct.unpack(_LORA_PKG_ACK_FORMAT, pack)
-        pkg = struct.pack(_LORA_PKG_FORMAT, ID_sent, Device_next, UID_msg, TTL + 1)
+        TTL = TTL + 1
+        pkg = pack_AckLora(ID_sent, Device_next, UID_msg, TTL)
         return pkg
     #struct.pack_into('B', pack, offset, v1, v2, ...)
 
